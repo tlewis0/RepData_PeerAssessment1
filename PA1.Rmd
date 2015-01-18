@@ -6,7 +6,7 @@ output: html_document
 keep_md: true
 ---
 
-## Loading and preprocessing the data
+## Load and preprocess the data
 Load the data (i.e. read.csv() )
 
 ```{r, echo=TRUE}
@@ -68,13 +68,8 @@ Which is at index number:
 which(data_nna_by_interv[,1]== max_int)
 ```
 
-## Imputing missing values
-Total number of missing values in the dataset (i.e. the total number of rows with NAs):
-```{r, echo=TRUE}
-dim(data_orig)[1] - dim(data_nna)[1] 
-```
-
-Created a new dataset that is equal to the original dataset but with the missing data filled in.  Missing data is filled in with the mean step value for that interval:
+## Impute missing values
+Create a new dataset that is equal to the original dataset but with the missing data filled in.  Missing data is filled in with the mean step value for that interval:
 ```{r, echo=TRUE}
 data_imp <- data_orig
 for (i in 1:dim(data_orig)[1]) {
@@ -86,6 +81,10 @@ for (i in 1:dim(data_orig)[1]) {
 }
 ```
 
+Total number of missing values in the dataset (i.e. the total number of rows with NAs):
+```{r, echo=TRUE}
+dim(data_orig)[1] - dim(data_nna)[1] 
+```
 
 ## Histogram of the total number of steps taken each day. 
 ```{r, echo=TRUE}
@@ -105,14 +104,13 @@ median(data_imp_by_date[,2])
 
 ## Differences in activity patterns between weekdays and weekends:
 
-Created a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
 ```{r, echo=TRUE}
 data_imp <- cbind(data_imp, as.factor((weekdays(strptime(data_imp[,2], format = "%Y-%m-%d")) == "Saturday" | weekdays(strptime(data_imp[,2], format = "%Y-%m-%d")) == "Sunday" )))
 colnames(data_imp) <- c("steps", "date", "interval", "weekend")
 ```
 
-Panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
-
+Vertical panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).:
 ```{r, echo=TRUE}
 data_tmp <- subset(data_imp, data_imp$weekend == FALSE)
 data_imp_by_interv <- cbind(data_imp_by_interv, aggregate(data_tmp$steps, by=list(data_tmp$interval), FUN=sum)[2])
@@ -121,16 +119,41 @@ data_tmp <- subset(data_imp, data_imp$weekend == TRUE)
 data_imp_by_interv <- cbind(data_imp_by_interv, aggregate(data_tmp$steps, by=list(data_tmp$interval), FUN=sum)[2])
 
 names(data_imp_by_interv) <- c("interval", "steps", "wkday", "wkend")
-sum(data_imp_by_interv$wkday)+sum(data_imp_by_interv$wkend) 
+max_steps <- max(c(max(data_imp_by_interv[,3]), max(data_imp_by_interv[,4])))
+
+par(mfrow=c(2,1), mar=c(4,4,1,1) )
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkday, type="l", col="chocolate",
+xlab="Interval", ylab="Steps Weekday", ylim=c(0, max_steps) )
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkend, type="l", col = "brown", xlab="Interval", ylab="Steps Weekend", ylim=c(0, max_steps) ) 
+
+```
+
+Horizontal panel plot of the same data which shows more clearly the differences in step activity:
+
+```{r, echo=TRUE}
+data_plot <- data_imp_by_interv[,c(1,3)]
+data_plot <- cbind(data_plot, "wkday")
+names(data_plot) <- c("interval", "steps", "day")
+
+data_tmp <- data_imp_by_interv[,c(1,4)]
+data_tmp <- cbind(data_tmp, "wkend")
+names(data_tmp) <- c("interval", "steps", "day")
+
+data_plot <- rbind(data_plot, data_tmp)
+max_steps <- max(data_plot[,2])
 
 library(lattice)
-par(mfrow=c(2,1))  
-plot(data_imp_by_interv$interval, data_imp_by_interv$wkday, type="l", col="darkgrey",
-xlab="Interval", ylab="Steps")
-plot(data_imp_by_interv$interval, data_imp_by_interv$wkend, type="l", col = "brown", xlab="Interval", ylab="Steps" ) 
-dev.off()
+xy_plot <- xyplot(steps ~ interval | day, data=data_plot, outer=T, type='l',              
+xlab=c('Interval'), ylab=c('Steps av'),
+panel=function(x, y,...){
+    panel.xyplot(x,y, type='l',
+    ylim=max_steps)
+})
+print(xy_plot)
+
 ```
-Comparison of the two plots reveal that there is a great deal of difference in activity between the weekdays and the weekend.  Mush more walking is done on the weekend.
+
+Comparison of the two plots reveal that there is a great deal of difference in activity between the weekdays and the weekend.  Much more walking is done on the weekdays, especially at the beginning of the day.
 
 
 

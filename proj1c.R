@@ -1,6 +1,5 @@
 
-#setwd("/media/VFAT-35G/classes/ReproResearch/RepData_PeerAssessment1")
-setwd("/media/sda3/classes/ReproData/RepData_PeerAssessment1")
+setwd("~/classes/ReproData/RepData_PeerAssessment1")
 
 #1. Load the data (i.e. read.csv() )
 data_orig <- read.csv("activity.csv")
@@ -56,9 +55,9 @@ dim(data_orig)[1] - dim(data_nna)[1] # 2304    0
 
 #Create a new dataset that is equal to the original dataset but with the missing data filled in.
 data_imp <- data_orig
-for (i in 1:dim(data_orig)[1]) {
-    if (is.na(data_orig[i,1])) {
-        step_ndx <- which(data_nna_by_interv$interv == data_orig$interv[i])
+for (i in 1:dim(data)[1]) {
+    if (is.na(data[i,1])) {
+        step_ndx <- which(data_nna_by_interv$interv == data$interv[i])
         data_imp$steps[i] <- data_nna_by_interv$day_av[step_ndx]
         #print(c(step_ndx, data_nna_by_interv$day_av[step_ndx]))
     }
@@ -100,24 +99,73 @@ data_imp_by_interv <- cbind(data_imp_by_interv, aggregate(data_tmp$steps, by=lis
 names(data_imp_by_interv) <- c("interval", "steps", "wkday", "wkend")
 sum(data_imp_by_interv$wkday)+sum(data_imp_by_interv$wkend) # 656737.5
 
-max_steps <- max(c(max(data_imp_by_interv[,3]), max(data_imp_by_interv[,4])))
+library(lattice)
+png(file="plot.png",width=480,height=480)
+par(mfrow=c(2,1))  
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkday, type="l", col="darkgrey",
+xlab="Interval", ylab="Steps")
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkend, type="l", col = "brown", xlab="Interval", ylab="Steps" ) 
+dev.off()
 
-par(mfrow=c(2,1), mar=c(4,4,1,1) )
-plot(data_imp_by_interv$interval, data_imp_by_interv$wkday, type="l", col="chocolate",
-xlab="Interval", ylab="Steps Weekday", ylim=c(0, max_steps) )
-plot(data_imp_by_interv$interval, data_imp_by_interv$wkend, type="l", col = "brown", xlab="Interval", ylab="Steps Weekend", ylim=c(0, max_steps) ) 
 
-#alternate layout using horizontal panels
-data_plot <- data_imp_by_interv[,c(1,3)]
-data_plot <- cbind(data_plot, "wkday")
-names(data_plot) <- c("interval", "steps", "day")
 
-data_tmp <- data_imp_by_interv[,c(1,4)]
-data_tmp <- cbind(data_tmp, "wkend")
-names(data_tmp) <- c("interval", "steps", "day")
+xy.plot <- xyplot(pl.1 + pl.2 ~ year | site, data=data, outer=T, type='l',              
+as.table=T, xlab=c('Year'), ylab=c('Spp. Frequency (%)'),
+panel=function(x, y,...){
+    panel.xyplot(x,y, type='l')
+    panel.abline(v=data$year.trt)
+})
+print(xy.plot)
 
-data_plot <- rbind(data_plot, data_tmp)
-max_steps <- max(data_plot[,2])
+panel.abline(v=data$year.trt[data$site==sites[panel.number()]]) 
+#where  sites is 
+sites <- unique(data$site) 
+#I doubled my sites object then that covered it.
+sites <- rep(unique(data$sites), 2)
+
+LABS <- LETTERS[1:4]
+with(df,
+     dotplot(mean ~ code | problem * topic,
+             lb=lower.bound, ub=upper.bound, mpch = c(3,1)[consistent+1],
+             ylim = extendrange(c(0,100)),
+             panel = function(x, y, lb, ub, mpch, ..., subscripts) {
+                 panel.dotplot(x, y, ..., pch=mpch[subscripts])
+                 lpoints(x, lb[subscripts], pch=6)
+                 lpoints(x, ub[subscripts], pch=2)
+                 lsegments(x,lb[subscripts],x,ub[subscripts],col="grey60")
+                 ltext(x=x[3], y=95, LABS[panel.number()], col="red",fontface=2)
+             },
+             scales = list(x = list(draw = FALSE)), as.table = TRUE)
+     )
+
+
+par(mfrow=c(2,1))
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkday, type="l", col="darkgrey",
+xlab="Interval", ylab="Steps")
+plot(data_imp_by_interv$interval, data_imp_by_interv$wkend, type="l", col = "brown", xlab="Interval", ylab="Steps" ) 
+
+as.table=T,
+panel.abline(v=data_plot$steps[data_plot$steps==day[panel.number()]]) 
+#where  sites is 
+sites <- unique(data$site) 
+#I doubled my sites object then that covered it.
+sites <- rep(unique(data$sites), 2)
+
+LABS <- LETTERS[1:4]
+with(df,
+     dotplot(mean ~ code | problem * topic,
+             lb=lower.bound, ub=upper.bound, mpch = c(3,1)[consistent+1],
+             ylim = extendrange(c(0,100)),
+             panel = function(x, y, lb, ub, mpch, ..., subscripts) {
+                 panel.dotplot(x, y, ..., pch=mpch[subscripts])
+                 lpoints(x, lb[subscripts], pch=6)
+                 lpoints(x, ub[subscripts], pch=2)
+                 lsegments(x,lb[subscripts],x,ub[subscripts],col="grey60")
+                 ltext(x=x[3], y=95, LABS[panel.number()], col="red",fontface=2)
+             },
+             scales = list(x = list(draw = FALSE)), as.table = TRUE)
+     )
+
 
 library(lattice)
 xy_plot <- xyplot(steps ~ interval | day, data=data_plot, outer=T, type='l',              
@@ -125,8 +173,10 @@ xlab=c('Interval'), ylab=c('Steps av'),
 panel=function(x, y,...){
     panel.xyplot(x,y, type='l',
     ylim=max_steps)
+    #panel.abline(v=data_plot$steps)
 })
 print(xy_plot)
+
 
 
 
